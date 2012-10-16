@@ -446,31 +446,83 @@
                         return a[i].value;
                     }
                 }
+            },
+
+            /**
+             * @description register a callback to be called after all canvas modules have been loaded.
+             * Loaded happens after onReady()
+             * @param {Function} The callback function to be called.
+             */
+            onLoaded : function(cb) {
+                if ($.isFunction(cb)) {
+                    loadedHandlers.push(cb);
+                }
+            },
+
+            /**
+             * @description register a callback to be called after the DOM is ready.
+             * onReady occurs before onLoaded().
+             * @param {Function} The callback function to be called.
+             */
+            onReady : function(cb) {
+                if ($.isFunction(cb)) {
+                    readyHandlers.push(cb);
+                }
             }
         },
 
         readyHandlers = [],
+        loadedHandlers = [],
 
         ready = function () {
             ready = $.nop;
             $.each(readyHandlers, $.invoker);
             readyHandlers = null;
         },
+
+        loaded = function () {
+            loaded = $.nop;
+            $.each(loadedHandlers, $.invoker);
+            loadedHandlers = null;
+        },
+
         /**
         * @description 
         * @param {Function} cb The function to run when ready.
         */
         canvas = function (cb) {
             if ($.isFunction(cb)) {
+                // Maybe change this to loadedHandlers
                 readyHandlers.push(cb);
             }
         };
 
     (function () {
         var ael = 'addEventListener',
+            modulesLoaded = function() {
+                var m, l = true;
+                for (m in Sfdc.canvas) {
+                    // Ask each module if it has been fully loaded.
+                    if ($.isObject(Sfdc.canvas[m]) && $.isFunction(Sfdc.canvas[m].loaded)) {
+                        if (!Sfdc.canvas[m].loaded()) {
+                            l = false;
+                        }
+                    }
+                }
+                return l;
+            },
+            tryLoaded = function () {
+                if (modulesLoaded()) {
+                    loaded();
+                }
+                else if (loadedHandlers) {
+                    setTimeout(tryLoaded, 30);
+                }
+            },
             tryReady = function () {
                 if (/loaded|complete/.test(doc.readyState)) {
                     ready();
+                    tryLoaded();
                 }
                 else if (readyHandlers) {
                     setTimeout(tryReady, 30);
@@ -489,6 +541,7 @@
         else if (global.attachEvent) {
             global.attachEvent('onload', ready);
         }
+
     }());
 
     $.each($, function (fn, name) {
@@ -500,6 +553,9 @@
     }
 
     global.Sfdc.canvas = canvas;
+    if (!global.Sfdc.JSON) {
+        global.Sfdc.JSON = JSON;
+    }
 
 
 }(this));/**
@@ -859,7 +915,6 @@
 
     var module =   (function() {
 
-        var internalCallback;
         /**
         * @lends Sfdc.canvas.xd
         */
@@ -880,6 +935,7 @@
             if (window.postMessage) {
                 // the browser supports window.postMessage, so call it with a targetOrigin
                 // set appropriately, based on the target_url parameter.
+                message = Sfdc.JSON.stringify(message);
                 target.postMessage(message, otherWindow);
             }
         }
@@ -893,6 +949,8 @@
         */
         function receiveMessage(callback, source_origin) {
 
+            var internalCallback;
+
             // browser supports window.postMessage (if not not supported for pilot - removed per securities request)
             if (window.postMessage) {
                 // bind the callback to the actual event associated with window.postMessage
@@ -902,7 +960,8 @@
                             || ($$.isFunction(source_origin) && source_origin(e.origin) === false)) {
                                 return false;
                         }
-                        callback(e);
+                        var data = Sfdc.JSON.parse(e.data);
+                        callback(data);
                     };
                 }
                 if (window.addEventListener) {
@@ -948,10 +1007,11 @@
 
     "use strict";
 
-    
+    var pversion, cversion = "27.0", loaded = false;
+
     var module =   (function() /**@lends module */ {
         
-        var purl, cbs = {}, seq = 0;
+        var purl, cbs = [], seq = 0;
         /**
         * @description
         * @function
@@ -968,18 +1028,18 @@
             return purl;
         }
 
-        function callbacker(message) {
-            if (message && message.data) {
+        function callbacker(data) {
+            if (data) {
                 // If the server is telling us the access_token is invalid, wipe it clean.
-                if (message.data.status === 401 &&
-                    $$.isArray(message.data.payload) &&
-                    message.data.payload[0].errorCode &&
-                    message.data.payload[0].errorCode === "INVALID_SESSION_ID") {
+                if (data.status === 401 &&
+                    $$.isArray(data.payload) &&
+                    data.payload[0].errorCode &&
+                    data.payload[0].errorCode === "INVALID_SESSION_ID") {
                     // Session has expired logout.
                     $$.oauth.logout();
                 }
-                if ($$.isFunction(cbs[message.data.seq])) {
-                    cbs[message.data.seq](message.data);
+                if ($$.isFunction(cbs[data.seq])) {
+                    cbs[data.seq](data);
                 }
                 else {
                     // This can happen when the user switches out canvas apps real quick,
@@ -997,7 +1057,7 @@
             // limit the sequencers to 100 avoid out of memory errors
             seq = (seq > 100) ? 0 : seq + 1;
             cbs[seq] = clientscb;
-            var wrapped = {seq : seq, body : message};
+            var wrapped = {seq : seq, src : "client", clientVersion : cversion, parentVersion: pversion, body : message};
             $$.xd.post(wrapped, getParentUrl(), parent);
         }
 
@@ -1102,16 +1162,35 @@
             postit(ccb, {type : "ajax", accessToken : token, url : url, config : config});
         }
 
+        function register() {
+            function cb(info) {
+                pversion = info.parentVersion;
+                loaded = true;
+            }
+            postit(cb, {type : "register", url : document.location.href});
+        }
+
         function token(t) {
             $$.oauth.token(t);
         }
 
+        function version() {
+            return {clientVersion: cversion, parentVersion : pversion};
+        }
+
+        function isLoaded() {
+            return loaded;
+        }
+
         $$.xd.receive(callbacker, getParentUrl());
+        register();
 
         return {
             ctx : getContext,
             ajax : ajax,
-            token : token
+            token : token,
+            version : version,
+            loaded : isLoaded
         };
     }());
 
