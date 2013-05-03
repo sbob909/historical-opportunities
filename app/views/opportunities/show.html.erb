@@ -1,0 +1,40 @@
+<p id="notice"><%= notice %></p>
+
+<p>
+  <b>Sfdc:</b>
+  <%= @opportunity.sfdc_id %>
+</p>
+
+<p>
+  <b>Name:</b>
+  <%= @opportunity.name %>
+</p>
+
+<p>
+  <b>Amount:</b>
+  <%= @opportunity.amount %>
+</p>
+
+<p>
+  <b>Stage:</b>
+  <%= @opportunity.stage %>
+</p>
+
+<p>
+  <b>Lead source:</b>
+  <%= @opportunity.lead_source %>
+</p>
+
+<p>
+  <b>Closed on:</b>
+  <%= @opportunity.closed_on %>
+</p>
+
+<p>
+  <b>Order number:</b>
+  <%= @opportunity.order_number %>
+</p>
+
+
+<%= link_to 'Edit', edit_opportunity_path(@opportunity) %> |
+<%= link_to 'Back', opportunities_path %>

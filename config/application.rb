@@ -22,7 +22,7 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 require File.expand_path('../boot', __FILE__)
-
+require 'rails/all'
 # Pick the frameworks you want:
 # require "active_record/railtie"
 require "action_controller/railtie"
@@ -89,3 +89,6 @@ module CanvasRuby
     config.assets.version = '1.0'
   end
 end
+
+# ENV['SALESFORCE_KEY'] = '3MVG9A2kN3Bn17hstSpe_.z.1ZlOq6ICgE_9Co.SzD9kp9q001K4fEz8m0zkw57enLiD3P30ET6mJI_ufrE3p'
+# ENV['SALESFORCE_SECRET'] = '6328634676814890230'

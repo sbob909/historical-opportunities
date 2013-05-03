@@ -23,7 +23,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 CanvasRuby::Application.routes.draw do
+  resources :opportunities
+
+
   get "canvas" => "canvas#index"
   post "canvas" => "canvas#post"
   get "callback" => "static#callback"
+  
+  match '/auth/:provider/callback' => 'sessions#callback'
+  match '/signout' => 'sessions#destroy', :as => :signout
+  
 end

@@ -1,0 +1,45 @@
+<%= form_for(@opportunity) do |f| %>
+  <% if @opportunity.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@opportunity.errors.count, "error") %> prohibited this opportunity from being saved:</h2>
+
+      <ul>
+      <% @opportunity.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.label :sfdc_id %><br />
+    <%= f.text_field :sfdc_id %>
+  </div>
+  <div class="field">
+    <%= f.label :name %><br />
+    <%= f.text_field :name %>
+  </div>
+  <div class="field">
+    <%= f.label :amount %><br />
+    <%= f.text_field :amount %>
+  </div>
+  <div class="field">
+    <%= f.label :stage %><br />
+    <%= f.text_field :stage %>
+  </div>
+  <div class="field">
+    <%= f.label :lead_source %><br />
+    <%= f.text_field :lead_source %>
+  </div>
+  <div class="field">
+    <%= f.label :closed_on %><br />
+    <%= f.date_select :closed_on %>
+  </div>
+  <div class="field">
+    <%= f.label :order_number %><br />
+    <%= f.number_field :order_number %>
+  </div>
+  <div class="actions">
+    <%= f.submit %>
+  </div>
+<% end %>
