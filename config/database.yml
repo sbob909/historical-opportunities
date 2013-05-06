@@ -1,5 +1,5 @@
 development:
   adapter: postgresql
   username: opportunities_dev
-  password: wrC2q6
+  password: your-password
   database: opportunities_dev
